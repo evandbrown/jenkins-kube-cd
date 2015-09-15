@@ -1,0 +1,59 @@
+kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: jenkins-builder
+  labels:
+    name: jenkins
+    role: agent
+    labels: docker
+spec:
+  replicas: 1
+  selector:
+    name: jenkins
+    role: agent
+    labels: docker
+  template:
+    metadata:
+      name: jenkins-builder
+      labels:
+        name: jenkins
+        role: agent
+        labels: docker
+    spec:
+      containers:
+      - name: jenkins-builder
+        image: gcr.io/cloud-solutions-images/jenkins-packer-agent:master-1f6b3f6
+        command:
+        - sh
+        - -c
+        - /usr/local/bin/jenkins-docker-supervisor.sh -master http://$JENKINS_SERVICE_HOST:$JENKINS_SERVICE_PORT_UI -tunnel $JENKINS_SERVICE_HOST:$JENKINS_SERVICE_PORT_DISCOVERY -executors 1 -labels docker
+        env:
+        - name: HOME
+          value: /home/jenkins-agent
+        volumeMounts:
+          - mountPath: /home/jenkins-agent
+            name: jenkins
+          - mountPath: /var/lib/docker
+            name: docker-lib
+          - mountPath: /var/run/docker.sock
+            name: docker-sock
+          - mountPath: /usr/bin/docker
+            name: docker-bin
+          - mountPath: /tmp
+            name: docker-tmp
+      volumes:
+        - name: jenkins
+          hostPath:
+            path: /home/jenkins-agent
+        - name: docker-lib
+          hostPath:
+            path: /var/lib/docker
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+        - name: docker-bin
+          hostPath:
+            path: /usr/bin/docker
+        - name: docker-tmp
+          hostPath:
+            path: /tmp
