@@ -36,7 +36,7 @@ An empty response is what you expect here.
 ### Create a Jenkins Replication Controller and Service
 Here you'll create a Replication Controller running a Jenkins image, and then a service that will route requests to the controller.
 
-Start by creating a file called `jenkins.yaml` with the following content:
+The Jenkins Replication Controller is defined in `jenkins.yaml` with the following content:
 
 ```yaml
 kind: ReplicationController
@@ -84,7 +84,7 @@ NAME                   READY     STATUS    RESTARTS   AGE
 jenkins-leader-to8xg   0/1       Pending   0          30s
 ```
 
-Now, create the file `service_jenkins.yaml` and paste the following contents:
+Now, deploy the Jenkins Service found in `service_jenkins.yaml` with the following contents:
 
 ```yaml
 kind: Service
@@ -121,7 +121,7 @@ Notice that this service exposes ports `8080` and `50000` for any pods that matc
 ### Create a build agent replication controller
 Now that you're running Jenkins, you'll want to run some workers that can do the build jobs assigned by Jenkins. These workers will be Kubernetes pods managed by a replication controller. The pods will be configured to have access to the Docker service on the node they're schedule on. This will allow Jenkins build jobs to be defined as Docker containers, which is super powerful and flexible.
 
-Start by creating a file called `build_agent.yaml` with the following content:
+The build agent Replication Controller is defined in `build_agent.yaml` with the following content:
 
 ```yaml
 kind: ReplicationController
@@ -208,7 +208,7 @@ Use `kubectl` to verify that 5 pods are running.
 ### Create a Nginx Replication Controller and Service
 The Nginx reverse proxy will be deployed (like the Jenkins server) as a replication controller with a service. The service will have a public load balancer associated.
 
-Create `proxy.yaml` with the following contents:
+The nginx Replication Controller is defined in `proxy.yaml` with the following contents:
 
 ```yaml
 kind: ReplicationController
@@ -255,7 +255,7 @@ $ kubectl create -f proxy.yaml
 ...
 ```
 
-Now, create the file `service_proxy.yaml` with the following contents:
+Now, deploy the proxy Service found in `service_proxy.yaml` with the following contents:
 
 ```yaml
 kind: Service
@@ -281,7 +281,7 @@ spec:
   type: LoadBalancer
 ```
 
-Finally, deploy the service that will expose the Nginx proxy to the Internet:
+Deploy the service that will expose the Nginx proxy to the Internet:
 
 ```shell
 kubectl create -f service_proxy.yaml
