@@ -281,7 +281,7 @@ spec:
   type: LoadBalancer
 ```
 
-Finally, deploy the service that will expose the Nginx proxy to the Internet:
+Deploy the service that will expose the Nginx proxy to the Internet:
 
 ```shell
 kubectl create -f service_proxy.yaml
