@@ -1,0 +1,24 @@
+
+kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: gceme-backend
+  labels:
+    name: gceme-backend
+spec:
+  replicas: 1
+  selector:
+    name: gceme-backend
+  template:
+    metadata:
+      name: gceme-backend
+      labels:
+        name: gceme-backend
+    spec:
+      containers:
+      - name: gceme-backend
+        image: gcr.io/evandbrown17/gceme:latest
+        command: ["sh", "-c", "app -port=8080"]
+        ports:
+        - name: gceme-backend
+          containerPort: 8080
