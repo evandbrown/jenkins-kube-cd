@@ -1,6 +1,6 @@
 kind: "Namespace"
 apiVersion: "v1"
 metadata: 
-  name: "development"
+  name: "staging"
   labels: 
-    name: "development"
+    name: "staging"
