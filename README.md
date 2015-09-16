@@ -11,13 +11,19 @@
 1. Configure your project and zone: `gcloud config set project YOUR_PROJECT ; gcloud config set compute/zone us-central1-f`
 1. Enable `kubectl`: `gcloud components update kubectl`
 
+## Step 0
+1. Clone this repository to your workstation:
+
+  ```shell
+  $ git clone https://github.com/evandbrown/jenkins-kube-cd.git
+  ```
+
 ##  Create a Kubernetes Cluster
 You'll use Google Container Engine to create and manage your Kubernetes cluster. Start by setting an env var with the cluster name, then provisioning it with `gcloud`:
 
 
 ```shell
-$ export CLUSTER_NAME=yourclustername
-$ gcloud container clusters create ${CLUSTER_NAME} \
+$ gcloud container clusters create gtc \
 --scopes "https://www.googleapis.com/auth/projecthosting,https://www.googleapis.com/auth/devstorage.full_control,\
 https://www.googleapis.com/auth/monitoring,\
 https://www.googleapis.com/auth/logging.write,\
@@ -34,49 +40,14 @@ $ kubectl get pods
 An empty response is what you expect here.
 
 ### Create a Jenkins Replication Controller and Service
-Here you'll create a Replication Controller running a Jenkins image, and then a service that will route requests to the controller.
+Here you'll create a Replication Controller running a Jenkins image, and then a service that will route requests to the controller. 
 
-The Jenkins Replication Controller is defined in `jenkins.yaml` with the following content:
+> **Note**: All of the files that define the Kubernetes resources you will be creating for Jenkins are in the `kubernetes/jenkins` folder in this repo. You are encouraged to check them out before running the create commands.
 
-```yaml
-kind: ReplicationController
-apiVersion: v1
-metadata:
-  name: jenkins-leader
-  labels:
-    name: jenkins
-    role: leader
-spec:
-  replicas: 1
-  selector:
-    name: jenkins
-    role: leader
-  template:
-    metadata:
-      name: jenkins-leader
-      labels:
-        name: jenkins
-        role: leader
-    spec:
-      containers:
-      - name: jenkins
-        image: gcr.io/cloud-solutions-images/jenkins-gcp-leader:master-aa479b4
-        command:
-        - /usr/local/bin/start.sh
-        env:
-        - name: GCS_RESTORE_URL
-          value: DISABLED
-        ports:
-        - name: jenkins-http
-          containerPort: 8080
-        - name: jenkins-disco
-          containerPort: 50000
-```
-
-Next, create the controller and confirm a pod was scheduled:
+The Jenkins Replication Controller is defined in `kubernetes/jenkins/jenkins.yaml`. Create the controller and confirm a pod was scheduled:
 
 ```shell
-$ kubectl create -f jenkins.yaml
+$ kubectl create -f kubernetes/jenkins/jenkins.yaml
 replicationcontrollers/jenkins-leader
 
 $ kubectl get pods
@@ -84,35 +55,10 @@ NAME                   READY     STATUS    RESTARTS   AGE
 jenkins-leader-to8xg   0/1       Pending   0          30s
 ```
 
-Now, deploy the Jenkins Service found in `service_jenkins.yaml` with the following contents:
-
-```yaml
-kind: Service
-apiVersion: v1
-metadata:
-  name: jenkins
-  labels:
-    name: jenkins
-    role: frontend
-spec:
-  ports:
-  - name: ui
-    port: 8080
-    targetPort: jenkins-http
-    protocol: TCP
-  - name: discovery
-    port: 50000
-    targetPort: jenkins-disco
-    protocol: TCP
-  selector:
-    name: jenkins
-    role: leader
-```
-
-Create the service:
+Now, deploy the Jenkins Service found in `kubernetes/jenkins/service_jenkins.yaml`:
 
 ```shell
-$ kubectl create -f service_jenkins.yaml
+$ kubectl create -f kubernetes/jenkins/service_jenkins.yaml
 ...
 ```
 
@@ -121,74 +67,10 @@ Notice that this service exposes ports `8080` and `50000` for any pods that matc
 ### Create a build agent replication controller
 Now that you're running Jenkins, you'll want to run some workers that can do the build jobs assigned by Jenkins. These workers will be Kubernetes pods managed by a replication controller. The pods will be configured to have access to the Docker service on the node they're schedule on. This will allow Jenkins build jobs to be defined as Docker containers, which is super powerful and flexible.
 
-The build agent Replication Controller is defined in `build_agent.yaml` with the following content:
-
-```yaml
-kind: ReplicationController
-apiVersion: v1
-metadata:
-  name: jenkins-builder
-  labels:
-    name: jenkins
-    role: agent
-    labels: docker
-spec:
-  replicas: 1
-  selector:
-    name: jenkins
-    role: agent
-    labels: docker
-  template:
-    metadata:
-      name: jenkins-builder
-      labels:
-        name: jenkins
-        role: agent
-        labels: docker
-    spec:
-      containers:
-      - name: jenkins-builder
-        image: gcr.io/cloud-solutions-images/jenkins-packer-agent:master-1f6b3f6
-        command:
-        - sh
-        - -c
-        - /usr/local/bin/jenkins-docker-supervisor.sh -master http://$JENKINS_SERVICE_HOST:$JENKINS_SERVICE_PORT_UI -tunnel $JENKINS_SERVICE_HOST:$JENKINS_SERVICE_PORT_DISCOVERY -executors 1 -labels docker
-        env:
-        - name: HOME
-          value: /home/jenkins-agent
-        volumeMounts:
-          - mountPath: /home/jenkins-agent
-            name: jenkins
-          - mountPath: /var/lib/docker
-            name: docker-lib
-          - mountPath: /var/run/docker.sock
-            name: docker-sock
-          - mountPath: /usr/bin/docker
-            name: docker-bin
-          - mountPath: /tmp
-            name: docker-tmp
-      volumes:
-        - name: jenkins
-          hostPath:
-            path: /home/jenkins-agent
-        - name: docker-lib
-          hostPath:
-            path: /var/lib/docker
-        - name: docker-sock
-          hostPath:
-            path: /var/run/docker.sock
-        - name: docker-bin
-          hostPath:
-            path: /usr/bin/docker
-        - name: docker-tmp
-          hostPath:
-            path: /tmp
-```
-
-Next, create the controller and confirm a pod was scheduled:
+The build agent Replication Controller is defined in `kubernetes/jenkins/build_agent.yaml`. Create the controller and confirm a pod was scheduled:
 
 ```shell
-$ kubectl create -f build_agent.yaml
+$ kubectl create -f kubernetes/jenkins/build_agent.yaml
 replicationcontrollers/jenkins-builder
 
 $ kubectl get pods
@@ -208,83 +90,17 @@ Use `kubectl` to verify that 5 pods are running.
 ### Create a Nginx Replication Controller and Service
 The Nginx reverse proxy will be deployed (like the Jenkins server) as a replication controller with a service. The service will have a public load balancer associated.
 
-The nginx Replication Controller is defined in `proxy.yaml` with the following contents:
-
-```yaml
-kind: ReplicationController
-apiVersion: v1
-metadata:
-  name: nginx-ssl-proxy
-  labels:
-    name: nginx
-    role: ssl-proxy
-spec:
-  replicas: 1
-  selector:
-    name: nginx
-    role: ssl-proxy
-  template:
-    metadata:
-      name: nginx-ssl-proxy
-      labels:
-        name: nginx
-        role: ssl-proxy
-    spec:
-      containers:
-      - name: nginx-ssl-proxy
-        image: gcr.io/cloud-solutions-images/nginx-ssl-proxy:master-cc00da0 
-        command:
-        - /bin/bash
-        - /usr/bin/start.sh
-        env:
-        - name: SERVICE_HOST_ENV_NAME
-          value: JENKINS_SERVICE_HOST
-        - name: SERVICE_PORT_ENV_NAME
-          value: JENKINS_SERVICE_PORT_UI
-        ports:
-        - name: ssl-proxy-http
-          containerPort: 80
-        - name: ssl-proxy-https
-          containerPort: 443
-```
-
-Deploy the proxy to Kubernetes:
+The nginx Replication Controller is defined in `kubernetes/jenkins/proxy.yaml`. Deploy the proxy to Kubernetes:
 
 ```shell
-$ kubectl create -f proxy.yaml
+$ kubectl create -f kubernetes/jenkins/proxy.yaml
 ...
 ```
 
-Now, deploy the proxy Service found in `service_proxy.yaml` with the following contents:
-
-```yaml
-kind: Service
-apiVersion: v1
-metadata:
-  name: nginx-ssl-proxy
-  labels:
-    name: nginx
-    role: ssl-proxy
-spec:
-  ports:
-  - name: https
-    port: 443
-    targetPort: ssl-proxy-https
-    protocol: TCP
-  - name: http
-    port: 80
-    targetPort: ssl-proxy-http
-    protocol: TCP
-  selector:
-    name: nginx
-    role: ssl-proxy
-  type: LoadBalancer
-```
-
-Deploy the service that will expose the Nginx proxy to the Internet:
+Now, deploy the proxy Service found in `kubernetes/jenkins/service_proxy.yaml`:
 
 ```shell
-kubectl create -f service_proxy.yaml
+kubectl create -f kubernetes/jenkins/service_proxy.yaml
 ...
 ```
 
@@ -292,20 +108,20 @@ Before you can use the service, you need to open firewall ports on the cluster V
 
 ```shell
 $ gcloud compute instances list \
-  -r "^gke-${CLUSTER_NAME}.*node.*$" \
+  -r "^gke-gtc.*node.*$" \
   | tail -n +2 \
   | cut -f1 -d' ' \
-  | xargs -L 1 -I '{}' gcloud compute instances add-tags {} --tags gke-${CLUSTER_NAME}-node
+  | xargs -L 1 -I '{}' gcloud compute instances add-tags {} --tags gke-gtc-node
 
-$ gcloud compute firewall-rules create ${CLUSTER_NAME}-jenkins-swarm-internal \
+$ gcloud compute firewall-rules create gtc-jenkins-swarm-internal \
   --allow TCP:50000,TCP:8080 \
-  --source-tags gke-${CLUSTER_NAME}-node \
-  --target-tags gke-${CLUSTER_NAME}-node
+  --source-tags gke-gtc-node \
+  --target-tags gke-gtc-node
 
-$ gcloud compute firewall-rules create ${CLUSTER_NAME}-jenkins-web-public \
-  --allow TCP:80,TCP:443 \
+$ gcloud compute firewall-rules create gtc-jenkins-web-public \
+  --allow TCP:80 \
   --source-ranges 0.0.0.0/0 \
-  --target-tags gke-${CLUSTER_NAME}-node
+  --target-tags gke-gtc-node
 ```
 
 Now find the public IP address of your proxy service and open it in your web browser:
