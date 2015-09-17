@@ -281,7 +281,7 @@ Navigate to your **gceme** project in Jenkins, then click the build button in th
 
 ![](img/first-build.png)
 
-### Phase 2: Modify Jenkinsfile to bulid and test the app
+### Phase 3: Modify Jenkinsfile to bulid and test the app
 Modify your `Jenkinsfile` script so it contains the following complete script:
 
 ```groovy
@@ -339,4 +339,30 @@ Commit and push your changes to GitHub and trigger the build again. View the liv
 
 ![](img/console.png)
 
+## Deploy a change
+Now that your pipeline is working, it's time to make a change to the `gceme` app and let your pipeline test, package, and deploy it.
+
+1. In the `gceme` repository on your workstation open `html.go` and replace the word `blue` with `orange` (there should be exactly two occurrences):
+
+  ```css
+  //snip
+  <div class="card orange">
+  <div class="card-content white-text">
+  <div class="card-title">Backend that serviced this request</div>
+  //snip
+  ```
+
+1. `git add`, then `git commit`, and finally `git push origin master` your change. When the change has pushed,
+
+1. When your change has been pushed to GitHub, navigate to Jenkins and click the button to run your build.
+
+1. Once the build is running, follow the instructions from earlier to view the Console Output. Track the output for a few minutes until the change is deployed to staging and you are prompted to deploy it:
+
+  ![](img/approve.png)
+
+1. If everything looks good, click the **Deploy to production** link. Confirm that production looks good when it completes.
+
+1. Look at the `Jenkinsfile` in the project and analyze how the approval workflow is written.
+
+## TODO: Clean up
 
