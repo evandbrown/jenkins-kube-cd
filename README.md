@@ -97,10 +97,10 @@ $ kubectl create -f kubernetes/jenkins/proxy.yaml
 ...
 ```
 
-Now, deploy the proxy Service found in `kubernetes/jenkins/service_proxy.yaml`:
+Now, deploy the proxy service found in `kubernetes/jenkins/service_proxy.yaml`. This will expose the nginx pods to the Internet:
 
 ```shell
-kubectl create -f kubernetes/jenkins/service_proxy.yaml
+$ kubectl create -f kubernetes/jenkins/service_proxy.yaml
 ...
 ```
 
@@ -112,12 +112,16 @@ $ gcloud compute instances list \
   | tail -n +2 \
   | cut -f1 -d' ' \
   | xargs -L 1 -I '{}' gcloud compute instances add-tags {} --tags gke-gtc-node
+```
 
+```shell
 $ gcloud compute firewall-rules create gtc-jenkins-swarm-internal \
   --allow TCP:50000,TCP:8080 \
   --source-tags gke-gtc-node \
   --target-tags gke-gtc-node
+```
 
+```shell
 $ gcloud compute firewall-rules create gtc-jenkins-web-public \
   --allow TCP:80 \
   --source-ranges 0.0.0.0/0 \
@@ -134,6 +138,8 @@ nginx-ssl-proxy   name=nginx,role=ssl-proxy   name=nginx,role=ssl-proxy   10.95.
 ```
 
 Spend a few minutes poking around Jenkins. You'll configure a build shortly...
+
+### TODO: Configure Jenkins auth
 
 ### Your progress, and what's next
 You've got a Kubernetes cluster managed by Google Container Engine. You've deployed:
@@ -167,7 +173,7 @@ The binary supports two modes of operation, designed to mimic a microservice. In
                                                        -----------
 ```
 
-Run the app on your workstation:
+### Run the app on your workstation:
 
 1. Download `gceme` for [Mac](https://storage.googleapis.com/evandbrown17/darwin/gceme) or [Linux](https://storage.googleapis.com/evandbrown17/linux/gceme) and `chmod +x` once you have it
 
@@ -187,40 +193,73 @@ Run the app on your workstation:
 
 1. Clone the repository to your laptop. If you're familiar with Go and have your Go dev environment configured, you can clone the repo to `$GOPATH/src/github.com/yourusername/gceme` and build/run it locally. Totally optional
 
+## Deploy the sample app to Kubernetes
+In this section you will deploy the `gceme` frontend and backend to Kubernetes. You'll have two environments - staging and production - and use Kubernetes namespaces to isolate them.
+
+> **Note**: The manifest files for this section of the tutorial are in `kubernetes/gceme`. You are encouraged to open and read each one before creating it per the instructions.
+
+1. Create the namespaces:
+
+   `$ kubectl create -f kubernetes/gceme/namespace-staging.yaml`   
+
+   `$ kubectl create -f kubernetes/gceme/namespace-prod.yaml`
+
+2. Create the replication controllers and services for staging:
+
+    `$ kubectl --namespace=staging create -f kubernetes/gceme/service_frontend.yaml`
+
+    `$ kubectl --namespace=staging create -f kubernetes/gceme/service_backend.yaml`
+
+    `$ kubectl --namespace=staging create -f kubernetes/gceme/frontend.yaml`
+
+    `$ kubectl --namespace=staging create -f kubernetes/gceme/backend.yaml`
+
+3. Repeat step 2, but for the `production` namespace:
+
+    `$ kubectl --namespace=production create -f kubernetes/gceme/service_frontend.yaml`
+
+    `$ kubectl --namespace=production create -f kubernetes/gceme/service_backend.yaml`
+
+    `$ kubectl --namespace=production create -f kubernetes/gceme/frontend.yaml`
+
+    `$ kubectl --namespace=production create -f kubernetes/gceme/backend.yaml`
+
+4. Retrieve the public IP for both services and confirm they're working:
+
+  ```shell
+  $ kubectl --namespace=staging get service/gceme
+  NAME      LABELS       SELECTOR              IP(S)           PORT(S)
+  gceme     name=gceme   name=gceme-frontend   10.235.248.11   80/TCP
+                                               104.197.84.5 
+  ```
+  
+  ```shell
+  $ kubectl --namespace=production get service/gceme
+  NAME      LABELS       SELECTOR              IP(S)            PORT(S)
+  gceme     name=gceme   name=gceme-frontend   10.235.243.23    80/TCP
+                                               104.197.36.222 
+  ```
+
 ## Create a pipeline
 You'll now use Jenkins to define and run a pipeline that will test, build, and deploy your copy of `gceme` to your Kubernetes cluster. You'll approach this in phases. Let's get started with the first.
 
-### Phase 1: Create a workflow project
-This lab uses [Jenkins Workflow](TODO) to define builds as groovy scripts. Navigate to your Jenkins UI and follow these steps to configure a workflow project (hot top: you can find the IP address of your Jenkins install with `kubectl get service/nginx-ssl-proxy`):
+### Phase 1: Create a Multibranch Workflow project
+This lab uses [Jenkins Workflow](TODO) to define builds as groovy scripts. Navigate to your Jenkins UI and follow these steps to configure a Multibranch Workflow project (hot tip: you can find the IP address of your Jenkins install with `kubectl get service/nginx-ssl-proxy`):
 
 1. Click the **New Item** link in the left nav
 
-1. Name the project **gceme**, choose the **Workflow** option, then click `OK`
+1. Name the project **gceme**, choose the **Multibranch Workflow** option, then click `OK`
 
-1. Under **Build Triggers** choose **Poll SCM** and enter `H/1 * * * *` This will have Jenkins poll GitHub every minute looking for changes.
+1. Click `Add Source` and choose `git`
 
-1. Under **Workflow**, choose **Groovy CPS DSL from SCM**
-
-  * Choose **Git** in the **SCM** child option
-  * Paste the **HTTPS clone URL** of your GitHub repository into the **Repository URL** field. You can find this value on your GitHub page in the right column:
+  1. Paste the **HTTPS clone URL** of your GitHub repository into the **Project Repository** field. You can find this value on your GitHub page in the right column:
   
-    ![](img/clone_url.png)
+     ![](img/clone_url.png)
 
-  * Your repo should be public; no need to choose credentials
-  * Click `Save`
+1. Click `Save`, leaving all other options with their defaults
 
-1. Click the `Build Now` button in the left column and watch your build crash and burn.
-
-> ### **FAQ**
-> 
-> **Why did my build crash and burn?**
->> The job you just created expects the SCM repo it's polling (i.e., your `gceme` repo on GitHub) to have a special `flow.groovy` script that defines how to build/test/deploy the project. Your repo doesn't have that file yet. Hence the crashing and the burning.
->
-> **How do I prevent the crashing and the burning?**
->> See Phase 2 below...
-
-### Phase 2: Create a workflow script to pass the build
-Make the build pass by adding a simple valid `flow.groovy` script to your `gceme` repo. The file should be in your repo's root and have the following contents:
+### Phase 2: Create a Jenkinsfile to pass the build
+Make the build pass by adding a simple valid `Jenkinsfile` script to your `gceme` repo. The file should be in your repo's root and have the following contents:
 
 ```groovy
 node('docker') {
@@ -228,23 +267,70 @@ node('docker') {
 }
 ```
 
-`git add flow.groovy`, then `git commit`, and finally `git push origin master` to push your changes to GitHub.
+The `Jenkinsfile` is written using the Jenkins Workflow DSL (Groov-based). It allows an entire build pipeline to be expressed in a single script, and supports powerful features like parallelization, stages, and user input. 
 
-Wait for the build to trigger (~1 minute), or click `Build Now` in the Jenkins UI to start it immediately.
+`git add Jenkinsfile`, then `git commit`, and finally `git push origin master` to push your changes to GitHub.
 
-### Phase 2: Modify flow.groovy to bulid and test the app
-Modify your `flow.groovy` script so it contains the following (**note**: replace the git repository url with your own):
+Navigate to your **gceme** project in Jenkins, then click the build button in the **master** branch row (the icon is a clock with a green triangle). After a few moments the build should complete successfully. You may need the refresh the page to see the result:
+
+![](img/first-build.png)
+
+### Phase 2: Modify Jenkinsfile to bulid and test the app
+Modify your `Jenkinsfile` script so it contains the following complete script:
 
 ```groovy
 node('docker') {
-  docker.image('golang:1.5.1').inside('-v /home/jenkins-agent/workspace/$JOB_NAME:/usr/src/JOB_NAME -w /usr/src/JOB_NAME') {
-    git 'https://github.com/evandbrown/gceme.git'
-    sh 'go get -d -v'
-    sh 'go test'
+  checkout scm
+
+  // Kubernetes cluster info
+  def cluster = 'gtc'
+  def zone = 'us-central1-f'
+
+  // Run tests
+  stage 'Go tests'
+  docker.image('golang:1.5.1').inside {
+    sh('go get -d -v')
+    sh('go test')
+  }
+
+  // Build image with Go binary
+  stage 'Build Docker image'
+  def img = docker.build("gcr.io/evandbrown17/gceme:${env.BUILD_TAG}")
+  sh('gcloud docker -a')
+  img.push()
+
+  // Deploy image to cluster in dev namespace
+  stage 'Deploy to QA cluster'
+  docker.image('buildpack-deps:jessie-scm').inside {
+    sh('apt-get update -y ; apt-get install jq')
+    sh('export CLOUDSDK_CORE_DISABLE_PROMPTS=1 ; curl https://sdk.cloud.google.com | bash')
+    sh("/root/google-cloud-sdk/bin/gcloud container clusters get-credentials ${cluster} --zone ${zone}")
+    sh('curl -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.0.1/bin/linux/amd64/kubectl ; chmod +x /usr/bin/kubectl')
+    sh("kubectl --namespace=staging rollingupdate gceme-frontend --image=${img.id}")
+    sh("kubectl --namespace=staging rollingupdate gceme-backend --image=${img.id}")
+    sh("echo http://`kubectl --namespace=staging get service/gceme --output=json | jq -r '.status.loadBalancer.ingress[0].ip'` > staging")
+  }
+
+  // Deploy to prod if approved
+  stage 'Approve, deploy to prod'
+  def url = readFile('staging').trim()
+  input message: "Does staging at $url look good? ", ok: "Deploy to production"
+  sh('gcloud docker -a')
+  img.push('latest')
+  docker.image('buildpack-deps:jessie-scm').inside {
+    sh('apt-get update -y ; apt-get install jq')
+    sh('export CLOUDSDK_CORE_DISABLE_PROMPTS=1 ; curl https://sdk.cloud.google.com | bash')
+    sh("/root/google-cloud-sdk/bin/gcloud container clusters get-credentials ${cluster} --zone ${zone}")
+    sh('curl -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.0.1/bin/linux/amd64/kubectl ; chmod +x /usr/bin/kubectl')
+    sh("kubectl --namespace=production rollingupdate gceme-frontend --image=${img.id}")
+    sh("kubectl --namespace=production rollingupdate gceme-backend --image=${img.id}")
+    sh("echo http://`kubectl --namespace=production get service/gceme --output=json | jq -r '.status.loadBalancer.ingress[0].ip'`")
   }
 }
 ```
 
-Commit and push your changes to GitHub and trigger the build again. 
+Commit and push your changes to GitHub and trigger the build again. View the live console output of the job by selecting 'Console Output' in the Build Executor Status panel in the left column:
+
+![](img/console.png)
 
 
