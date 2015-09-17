@@ -178,10 +178,16 @@ The binary supports two modes of operation, designed to mimic a microservice. In
 1. Download `gceme` for [Mac](https://storage.googleapis.com/evandbrown17/darwin/gceme) or [Linux](https://storage.googleapis.com/evandbrown17/linux/gceme) and `chmod +x` once you have it
 
 1. Run a backend on 8181:
-        ./gceme -port=8181 &
+
+  ```shell
+  ./gceme -port=8181 &
+  ```
 
 1. Run a frontend on 8080 that connects to the backend:
-        ./gceme -frontend=true -backend-service=http://localhost:8181 -port=8080 &
+
+  ```shell
+  ./gceme -frontend=true -backend-service=http://localhost:8181 -port=8080 &
+  ```
 
 1. Open your browser to `localhost:8080` or `curl localhost:8080` to confirm the service is working.
 
