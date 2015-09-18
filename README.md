@@ -24,11 +24,7 @@ You'll use Google Container Engine to create and manage your Kubernetes cluster.
 
 ```shell
 $ gcloud container clusters create gtc \
---scopes "https://www.googleapis.com/auth/projecthosting,https://www.googleapis.com/auth/devstorage.full_control,\
-https://www.googleapis.com/auth/monitoring,\
-https://www.googleapis.com/auth/logging.write,\
-https://www.googleapis.com/auth/compute,\
-https://www.googleapis.com/auth/cloud-platform"
+  --scopes https://www.googleapis.com/auth/cloud-platform
 ```
 
 Now you can confirm that the cluster is running and `kubectl` is working by listing pods:
@@ -90,11 +86,14 @@ Use `kubectl` to verify that 5 pods are running.
 ### Create a Nginx Replication Controller and Service
 The Nginx reverse proxy will be deployed (like the Jenkins server) as a replication controller with a service. The service will have a public load balancer associated.
 
-The nginx Replication Controller is defined in `kubernetes/jenkins/proxy.yaml`. Deploy the proxy to Kubernetes:
+The nginx Replication Controller is defined in `kubernetes/jenkins/proxy.yaml`. You'll use the Kubernetes `secrets` API to create an `htpasswd` file that lets nginx enforce basic authentication.  Deploy the secrets and proxy to Kubernetes:
+
+```shell
+$ kubectl create -f kubernetes/jenkins/ssl_secrets.yaml
+```
 
 ```shell
 $ kubectl create -f kubernetes/jenkins/proxy.yaml
-...
 ```
 
 Now, deploy the proxy service found in `kubernetes/jenkins/service_proxy.yaml`. This will expose the nginx pods to the Internet:
@@ -104,31 +103,7 @@ $ kubectl create -f kubernetes/jenkins/service_proxy.yaml
 ...
 ```
 
-Before you can use the service, you need to open firewall ports on the cluster VMs:
-
-```shell
-$ gcloud compute instances list \
-  -r "^gke-gtc.*node.*$" \
-  | tail -n +2 \
-  | cut -f1 -d' ' \
-  | xargs -L 1 -I '{}' gcloud compute instances add-tags {} --tags gke-gtc-node
-```
-
-```shell
-$ gcloud compute firewall-rules create gtc-jenkins-swarm-internal \
-  --allow TCP:50000,TCP:8080 \
-  --source-tags gke-gtc-node \
-  --target-tags gke-gtc-node
-```
-
-```shell
-$ gcloud compute firewall-rules create gtc-jenkins-web-public \
-  --allow TCP:80 \
-  --source-ranges 0.0.0.0/0 \
-  --target-tags gke-gtc-node
-```
-
-Now find the public IP address of your proxy service and open it in your web browser:
+Now find the public IP address of your proxy service and open it in your web browser. The default username and password is `jenkins`:
 
 ```shell
 $ kubectl get service/nginx-ssl-proxy
@@ -138,8 +113,6 @@ nginx-ssl-proxy   name=nginx,role=ssl-proxy   name=nginx,role=ssl-proxy   10.95.
 ```
 
 Spend a few minutes poking around Jenkins. You'll configure a build shortly...
-
-### TODO: Configure Jenkins auth
 
 ### Your progress, and what's next
 You've got a Kubernetes cluster managed by Google Container Engine. You've deployed:

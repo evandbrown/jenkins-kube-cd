@@ -28,8 +28,18 @@ spec:
           value: JENKINS_SERVICE_HOST
         - name: SERVICE_PORT_ENV_NAME
           value: JENKINS_SERVICE_PORT_UI
+        - name: ENABLE_BASIC_AUTH
+          value: 'true'
         ports:
         - name: ssl-proxy-http
           containerPort: 80
         - name: ssl-proxy-https
           containerPort: 443
+        volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+          readOnly: true
+      volumes:
+      - name: secrets
+        secret:
+          secretName: ssl-proxy-secret
