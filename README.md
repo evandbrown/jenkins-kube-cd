@@ -18,6 +18,9 @@
   $ git clone https://github.com/evandbrown/jenkins-kube-cd.git
   ```
 
+## Optional shortcut
+In the upcoming steps you will use `gcloud` and `kubectl` to provision a Kubernetes cluster and deploy everything required to run Jenkins. If you don't want to copy/paste ~12 commands, you can simply run `./shortcut.sh` in the `jenkins-kube-cd` directory you just cloned. No one will judge you if you do. If you do this, you can skip down to [Connect to Jenkins](#connect-to-jenkins)
+
 ##  Create a Kubernetes Cluster
 You'll use Google Container Engine to create and manage your Kubernetes cluster. Start by setting an env var with the cluster name, then provisioning it with `gcloud`:
 
@@ -102,6 +105,9 @@ Now, deploy the proxy service found in `kubernetes/jenkins/service_proxy.yaml`. 
 $ kubectl create -f kubernetes/jenkins/service_proxy.yaml
 ...
 ```
+
+<a name="connect-to-jenkins"></a>
+### Connect to Jenkins
 
 Now find the public IP address of your proxy service and open it in your web browser. The default username and password is `jenkins`:
 
@@ -337,5 +343,12 @@ Now that your pipeline is working, it's time to make a change to the `gceme` app
 
 1. Look at the `Jenkinsfile` in the project and analyze how the approval workflow is written.
 
-## TODO: Clean up
+## Clean up
+Clean up is really easy, but also super important: if you don't follow these instructions, you will continue to be billed for the Google Container Engine cluster you created.
+
+Cleaning up is one simple command:
+
+```shell
+$ gcloud container clusters delete gtc
+```
 
