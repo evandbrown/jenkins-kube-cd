@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: gceme-frontend
-        image: gcr.io/evandbrown17/gceme:latest
+      image: gcr.io/cloud-solutions-images/gceme:latest
         command: ["sh", "-c", "app -frontend=true -backend-service=http://${GCEME_BACKEND_SERVICE_HOST}:${GCEME_BACKEND_SERVICE_PORT} -port=80"]
         ports:
         - name: gceme-frontend
