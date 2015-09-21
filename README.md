@@ -170,18 +170,27 @@ The binary supports two modes of operation, designed to mimic a microservice. In
 
 1. Open your browser to `localhost:8080` or `curl localhost:8080` to confirm the service is working.
 
+1. Kill the processes: `killall gceme`
+
 ### Fork and clone the app 
+Here you'll create your own copy of the `gceme` source code in GitHub and download it to your workstation. Note that the source code in this repository is just for the `gceme` binary, and a `Dockerfile` that describes how to package the binary in a container. 
 
 1. Open the `gceme` repo in your browser: [https://github.com/evandbrown/gceme](https://github.com/evandbrown/gceme)
 
 1. Click the `Fork` button to make a copy of the repository in your GitHub account
 
-1. Clone the repository to your laptop. If you're familiar with Go and have your Go dev environment configured, you can clone the repo to `$GOPATH/src/github.com/yourusername/gceme` and build/run it locally. Totally optional
+1. Clone the repository to your laptop. 
+
+  > **Note**: If you're familiar with Go and have your Go dev environment configured, you can clone the repo to `$GOPATH/src/github.com/yourusername/gceme` and build/run it locally. Totally optional.
 
 ## Deploy the sample app to Kubernetes
-In this section you will deploy the `gceme` frontend and backend to Kubernetes. You'll have two environments - staging and production - and use Kubernetes namespaces to isolate them.
+In this section you will deploy the `gceme` frontend and backend to Kubernetes. Although you just downloaded the `gceme` source, the files for this section are in the `jenkins-kube-cd` project. These files consist of the Kubernetes manifests that describe the environment that the `gceme` binary/Docker image will be deployed to. They use a default `gceme` Docker image that you will be updating with your own in a later section.
 
-> **Note**: The manifest files for this section of the tutorial are in `kubernetes/gceme`. You are encouraged to open and read each one before creating it per the instructions.
+You'll have two environments - staging and production - and use Kubernetes namespaces to isolate them. 
+
+> **Important**: If you used the `shortcut.sh` script earlier, it does not apply here. You will need to execute each of the commands below to proceed.
+
+> **Note**: The manifest files for this section of the tutorial are in `kubernetes/gceme` in the `jenkins-kube-cd` repo. You are encouraged to open and read each one before creating it per the instructions.
 
 1. Create the namespaces:
 
