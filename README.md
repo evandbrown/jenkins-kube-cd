@@ -9,6 +9,7 @@ The easy prework configures a lab GCE instance with all tools installed and read
 1. Create a new Google Cloud Platform project: [https://console.developers.google.com/project](https://console.developers.google.com/project)
 1. Enable the **Google Container Engine** and **Google Compute Engine** APIs
 1. Start a new GCE instane in the console with the following options:
+
   * **Zone**: us-central1-f
   * **Project access**: Allow API access to all Google Cloud services...
   * **Management > Automation > Startup script**:
@@ -42,6 +43,7 @@ The easy prework configures a lab GCE instance with all tools installed and read
     fi
     EOF
     ```
+
 1. SSH to the instance from the console. The tools and source you need for the lab will be configured and you will be placed in the `~/gtc` dir
 1. Run `gcloud compute instances list` to confirm things are working
 
