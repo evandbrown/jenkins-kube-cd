@@ -1,4 +1,4 @@
-# Lab: Build a Continuouso Delivery Pipeline with Jenkins and Kubernetes
+# Lab: Build a Continuous Delivery Pipeline with Jenkins and Kubernetes
 
 ## Prerequisites
 1. A GitHub account
@@ -117,6 +117,8 @@ NAME              LABELS                      SELECTOR                    IP(S) 
 nginx-ssl-proxy   name=nginx,role=ssl-proxy   name=nginx,role=ssl-proxy   10.95.241.75      443/TCP
                                                                           173.255.118.210   80/TCP
 ```
+
+Copy down the URL of your Jenkins server and save it somewere. You'll be using it in upcoming sections.
 
 Spend a few minutes poking around Jenkins. You'll configure a build shortly...
 
@@ -237,6 +239,8 @@ You'll have two environments - staging and production - and use Kubernetes names
 ## Create a pipeline
 You'll now use Jenkins to define and run a pipeline that will test, build, and deploy your copy of `gceme` to your Kubernetes cluster. You'll approach this in phases. Let's get started with the first.
 
+> **Note**: This section uses source files in the `gceme` project.
+
 ### Phase 1: Create a Multibranch Workflow project
 This lab uses [Jenkins Workflow](TODO) to define builds as groovy scripts. Navigate to your Jenkins UI and follow these steps to configure a Multibranch Workflow project (hot tip: you can find the IP address of your Jenkins install with `kubectl get service/nginx-ssl-proxy`):
 
@@ -270,7 +274,7 @@ Navigate to your **gceme** project in Jenkins, then click the build button in th
 ![](img/first-build.png)
 
 ### Phase 3: Modify Jenkinsfile to bulid and test the app
-Modify your `Jenkinsfile` script so it contains the following complete script:
+Modify your `Jenkinsfile` script so it contains the following complete script (or copy the file from `misc/Jenkinsfile` in the `jenkins-cube-cd` repo). Be sure to replace _REPLACE_WITH_YOUR_PROJECT_NAME_ on line 7 with your project name:
 
 ```groovy
 node('docker') {
@@ -279,6 +283,7 @@ node('docker') {
   // Kubernetes cluster info
   def cluster = 'gtc'
   def zone = 'us-central1-f'
+  def project = 'REPLACE_WITH_YOUR_PROJECT_NAME'
 
   // Run tests
   stage 'Go tests'
@@ -289,7 +294,7 @@ node('docker') {
 
   // Build image with Go binary
   stage 'Build Docker image'
-  def img = docker.build("gcr.io/evandbrown17/gceme:${env.BUILD_TAG}")
+  def img = docker.build("gcr.io/${project}/gceme:${env.BUILD_TAG}")
   sh('gcloud docker -a')
   img.push()
 
@@ -323,9 +328,7 @@ node('docker') {
 }
 ```
 
-Commit and push your changes to GitHub and trigger the build again. View the live console output of the job by selecting 'Console Output' in the Build Executor Status panel in the left column:
-
-![](img/console.png)
+Don't commit the new `Jenkinsfile` just yet. You'll make one more change in the next section, then commit and push them together.
 
 ## Deploy a change
 Now that your pipeline is working, it's time to make a change to the `gceme` app and let your pipeline test, package, and deploy it.
@@ -340,11 +343,15 @@ Now that your pipeline is working, it's time to make a change to the `gceme` app
   //snip
   ```
 
-1. `git add`, then `git commit`, and finally `git push origin master` your change. When the change has pushed,
+1. `git add Jenkinsfile html.go`, then `git commit`, and finally `git push origin master` your change. When the change has pushed,
 
 1. When your change has been pushed to GitHub, navigate to Jenkins and click the button to run your build.
 
-1. Once the build is running, follow the instructions from earlier to view the Console Output. Track the output for a few minutes until the change is deployed to staging and you are prompted to deploy it:
+1. Once the build is running, click the down arrow next to the build in the left column and choose **Console Output**:
+
+  ![](img/console.png)
+
+1. Track the output for a few minutes until the change is deployed to staging and you are prompted to deploy it:
 
   ![](img/approve.png)
 
