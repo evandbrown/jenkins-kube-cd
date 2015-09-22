@@ -6,6 +6,7 @@
 
 ## Prework - The easy way
 The easy prework configures a lab GCE instance with all tools installed and ready to go. Use this option if you have a Chromebook or aren't interested in configuring your workstation to perform the lab:
+
 1. Create a new Google Cloud Platform project: [https://console.developers.google.com/project](https://console.developers.google.com/project)
 1. Enable the **Google Container Engine** and **Google Compute Engine** APIs
 1. Start a new GCE instane in the console with the following options:
@@ -48,7 +49,7 @@ The easy prework configures a lab GCE instance with all tools installed and read
 1. Run `gcloud compute instances list` to confirm things are working
 
 ## Prework - The not easy, but not really that hard way
-If you choose this prework, you'll configure all of the tools for the lab on your workstation. You probably already have them: it's just `git`, `gcloud`, and `kubectl`. Then you'll two source repositories from GitHub. 
+If you choose this prework, you'll configure all of the tools for the lab on your workstation. You probably already have them: it's just `git`, `gcloud`, and `kubectl`. Then you'll clone a repo from GitHub:
 
 1. Create a new Google Cloud Platform project: [https://console.developers.google.com/project](https://console.developers.google.com/project)
 1. Enable the **Google Container Engine** and **Google Compute Engine** APIs
