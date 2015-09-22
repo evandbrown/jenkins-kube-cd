@@ -4,15 +4,56 @@
 1. A GitHub account
 1. A Google Cloud Platform Account
 
-## Prework
+## Prework - The easy way
+The easy prework configures a lab GCE instance with all tools installed and ready to go. Use this option if you have a Chromebook or aren't interested in configuring your workstation to perform the lab:
+1. Create a new Google Cloud Platform project: [https://console.developers.google.com/project](https://console.developers.google.com/project)
+1. Enable the **Google Container Engine** and **Google Compute Engine** APIs
+1. Start a new GCE instane in the console with the following options:
+  * **Zone**: us-central1-f
+  * **Project access**: Allow API access to all Google Cloud services...
+  * **Management > Automation > Startup script**:
+   
+    ```shell
+    #!/bin/bash
+    apt-get upgrade -y
+    apt-get install -y git
+
+    # Configure gcloud
+    gcloud components update kubectl --quiet
+    ln -s /usr/local/share/google/google-cloud-sdk/bin/kubectl /usr/local/bin/kubectl
+
+    cat <<"EOF" > /etc/profile.d/gtc.sh
+    if [ ! -f "$HOME/.gtcinit" ]; then
+      echo "INITIALIZING INSTANCE FOR GTC LAB"
+      gcloud config set compute/zone us-central1-f
+
+      # Make project dir
+      if [ ! -d "$HOME/gtc" ]; then
+        mkdir -p $HOME/gtc 
+      fi
+
+      # Clone jenkins-kube-cd
+      if [ ! -d "$HOME/gtc/jenkins-kube-cd" ]; then
+        cd $HOME/gtc
+        git clone https://github.com/evandbrown/jenkins-kube-cd.git
+      fi
+
+      touch $HOME/.gtcinit
+    fi
+    EOF
+    ```
+1. SSH to the instance from the console. The tools and source you need for the lab will be configured and you will be placed in the `~/gtc` dir
+1. Run `gcloud compute instances list` to confirm things are working
+
+## Prework - The not easy, but not really that hard way
+If you choose this prework, you'll configure all of the tools for the lab on your workstation. You probably already have them: it's just `git`, `gcloud`, and `kubectl`. Then you'll two source repositories from GitHub. 
+
 1. Create a new Google Cloud Platform project: [https://console.developers.google.com/project](https://console.developers.google.com/project)
 1. Enable the **Google Container Engine** and **Google Compute Engine** APIs
 1. Install `gcloud`: [https://cloud.google.com/sdk/](https://cloud.google.com/sdk/)
 1. Configure your project and zone: `gcloud config set project YOUR_PROJECT ; gcloud config set compute/zone us-central1-f`
 1. Enable `kubectl`: `gcloud components update kubectl`
-
-## Step 0
-1. Clone this repository to your workstation:
+1. Clone the lab repository to your workstation:
 
   ```shell
   $ git clone https://github.com/evandbrown/jenkins-kube-cd.git
@@ -181,7 +222,7 @@ Here you'll create your own copy of the `gceme` source code in GitHub and downlo
 
 1. Click the `Fork` button to make a copy of the repository in your GitHub account
 
-1. Clone the repository to your laptop. 
+1. Clone the repository to your laptop (e.g., `git clone https://github.com/YOUR_USERNAME/gceme.git`)
 
   > **Note**: If you're familiar with Go and have your Go dev environment configured, you can clone the repo to `$GOPATH/src/github.com/yourusername/gceme` and build/run it locally. Totally optional.
 
