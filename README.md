@@ -57,10 +57,15 @@ The easy prework configures a lab GCE instance with all tools installed and read
 If you choose this prework, you'll configure all of the tools for the lab on your workstation. You probably already have them: it's just `git`, `gcloud`, and `kubectl`. Then you'll clone a repo from GitHub:
 
 1. Create a new Google Cloud Platform project: [https://console.developers.google.com/project](https://console.developers.google.com/project)
+
 1. Enable the **Google Container Engine** and **Google Compute Engine** APIs
+
 1. Install `gcloud`: [https://cloud.google.com/sdk/](https://cloud.google.com/sdk/)
+
 1. Configure your project and zone: `gcloud config set project YOUR_PROJECT ; gcloud config set compute/zone us-central1-f`
+
 1. Enable `kubectl`: `gcloud components update kubectl`
+
 1. Clone the lab repository to your workstation:
 
   ```shell
