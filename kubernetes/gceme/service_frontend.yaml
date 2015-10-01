@@ -2,9 +2,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: gceme
-  labels:
-    name: gceme
+  name: gceme-frontend
 spec:
   ports:
   - name: http
@@ -12,5 +10,6 @@ spec:
     targetPort: 80
     protocol: TCP
   selector:
-    name: gceme-frontend
+    app: gceme
+    role: frontend
   type: LoadBalancer

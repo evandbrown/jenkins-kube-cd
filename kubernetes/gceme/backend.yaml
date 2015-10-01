@@ -3,22 +3,27 @@ kind: ReplicationController
 apiVersion: v1
 metadata:
   name: gceme-backend
-  labels:
-    name: gceme-backend
 spec:
   replicas: 1
   selector:
-    name: gceme-backend
+    app: gceme
+    role: backend
   template:
     metadata:
-      name: gceme-backend
+      name: backend
       labels:
-        name: gceme-backend
+        app: gceme
+        role: backend
     spec:
       containers:
-      - name: gceme-backend
-        image: gcr.io/cloud-solutions-images/gceme:latest
+      - name: backend
+        image: gcr.io/cloud-solutions-images/gceme:1.0.0
+        imagePullPolicy: Always
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
         command: ["sh", "-c", "app -port=8080"]
         ports:
-        - name: gceme-backend
+        - name: backend
           containerPort: 8080

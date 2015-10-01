@@ -3,8 +3,6 @@ kind: Service
 apiVersion: v1
 metadata:
   name: gceme-backend
-  labels:
-    name: gceme-backend
 spec:
   ports:
   - name: http
@@ -12,4 +10,5 @@ spec:
     targetPort: 8080
     protocol: TCP
   selector:
-    name: gceme-backend
+    role: backend
+    app: gceme
