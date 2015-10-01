@@ -208,6 +208,11 @@ The binary supports two modes of operation, designed to mimic a microservice. In
                                                        -----------
 ```
 
+Both the frontend and backend modes of the application support two additional URLs:
+
+1. `/version` prints the version of the binary (declared as a const in `main.go`)
+1. `/healthz` reports the health of the application. In frontend mode, health will be OK if the backend is reachable.
+
 ### Run the app on your workstation:
 
 1. Download `gceme` for [Mac](https://storage.googleapis.com/evandbrown17/darwin/gceme) or [Linux](https://storage.googleapis.com/evandbrown17/linux/gceme) and `chmod +x` once you have it
@@ -254,7 +259,7 @@ You'll have two environments - staging and production - and use Kubernetes names
 
    `$ kubectl create -f kubernetes/gceme/namespace-prod.yaml`
 
-2. Create the replication controllers and services for staging:
+1. Create the replication controllers and services for staging:
 
     `$ kubectl --namespace=staging create -f kubernetes/gceme/service_frontend.yaml`
 
@@ -263,8 +268,10 @@ You'll have two environments - staging and production - and use Kubernetes names
     `$ kubectl --namespace=staging create -f kubernetes/gceme/frontend.yaml`
 
     `$ kubectl --namespace=staging create -f kubernetes/gceme/backend.yaml`
+    
+    `$ kubectl --namespace=staging scale rc/gceme-frontend --replicas=4`
 
-3. Repeat step 2, but for the `production` namespace:
+1. Repeat step 2, but for the `production` namespace:
 
     `$ kubectl --namespace=production create -f kubernetes/gceme/service_frontend.yaml`
 
@@ -274,21 +281,31 @@ You'll have two environments - staging and production - and use Kubernetes names
 
     `$ kubectl --namespace=production create -f kubernetes/gceme/backend.yaml`
 
-4. Retrieve the public IP for both services and confirm they're working:
+    `$ kubectl --namespace=production scale rc/gceme-frontend --replicas=4`
+
+1. Retrieve the public IP for both services:
 
   ```shell
-  $ kubectl --namespace=staging get service/gceme
+  $ kubectl --namespace=staging get service/gceme-frontend
   NAME      LABELS       SELECTOR              IP(S)           PORT(S)
   gceme     name=gceme   name=gceme-frontend   10.235.248.11   80/TCP
                                                104.197.84.5 
   ```
   
   ```shell
-  $ kubectl --namespace=production get service/gceme
+  $ kubectl --namespace=production get service/gceme-frontend
   NAME      LABELS       SELECTOR              IP(S)            PORT(S)
   gceme     name=gceme   name=gceme-frontend   10.235.243.23    80/TCP
                                                104.197.36.222 
   ```
+
+1. Confirm that both services are working by opening them in your browser
+
+1. Open a terminal and poll the staging endpoint's `/version` URL so you can easily observe rolling updates in the next section:
+
+   ```shell
+   $ while true; do curl http://YOUR_STAGING_SERVICE_IP/version; sleep 1;  done
+   ```
 
 ## Create a pipeline
 You'll now use Jenkins to define and run a pipeline that will test, build, and deploy your copy of `gceme` to your Kubernetes cluster. You'll approach this in phases. Let's get started with the first.
@@ -359,9 +376,9 @@ node('docker') {
     sh('export CLOUDSDK_CORE_DISABLE_PROMPTS=1 ; curl https://sdk.cloud.google.com | bash')
     sh("/root/google-cloud-sdk/bin/gcloud container clusters get-credentials ${cluster} --zone ${zone}")
     sh('curl -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.0.1/bin/linux/amd64/kubectl ; chmod +x /usr/bin/kubectl')
-    sh("kubectl --namespace=staging rollingupdate gceme-frontend --image=${img.id}")
-    sh("kubectl --namespace=staging rollingupdate gceme-backend --image=${img.id}")
-    sh("echo http://`kubectl --namespace=staging get service/gceme --output=json | jq -r '.status.loadBalancer.ingress[0].ip'` > staging")
+    sh("kubectl --namespace=staging rollingupdate gceme-frontend --image=${img.id} --update-period=5s")
+    sh("kubectl --namespace=staging rollingupdate gceme-backend --image=${img.id} --update-period=5s")
+    sh("echo http://`kubectl --namespace=staging get service/gceme-frontend --output=json | jq -r '.status.loadBalancer.ingress[0].ip'` > staging")
   }
 
   // Deploy to prod if approved
@@ -375,9 +392,9 @@ node('docker') {
     sh('export CLOUDSDK_CORE_DISABLE_PROMPTS=1 ; curl https://sdk.cloud.google.com | bash')
     sh("/root/google-cloud-sdk/bin/gcloud container clusters get-credentials ${cluster} --zone ${zone}")
     sh('curl -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.0.1/bin/linux/amd64/kubectl ; chmod +x /usr/bin/kubectl')
-    sh("kubectl --namespace=production rollingupdate gceme-frontend --image=${img.id}")
-    sh("kubectl --namespace=production rollingupdate gceme-backend --image=${img.id}")
-    sh("echo http://`kubectl --namespace=production get service/gceme --output=json | jq -r '.status.loadBalancer.ingress[0].ip'`")
+    sh("kubectl --namespace=production rollingupdate gceme-frontend --image=${img.id} --update-period=5s")
+    sh("kubectl --namespace=production rollingupdate gceme-backend --image=${img.id} --update-period=5s")
+    sh("echo http://`kubectl --namespace=production get service/gceme-frontend --output=json | jq -r '.status.loadBalancer.ingress[0].ip'`")
   }
 }
 ```
@@ -397,7 +414,15 @@ Now that your pipeline is working, it's time to make a change to the `gceme` app
   //snip
   ```
 
-1. `git add Jenkinsfile html.go`, then `git commit`, and finally `git push origin master` your change. When the change has pushed,
+1. In the same repository, open `main.go` and change the version number from `1.0.0` to `2.0.0`:
+
+   ```go
+   //snip
+   const version string = "4.0.0"
+   //snip
+   ```
+
+1. `git add Jenkinsfile html.go main.go`, then `git commit`, and finally `git push origin master` your change. When the change has pushed,
 
 1. When your change has been pushed to GitHub, navigate to Jenkins and click the button to run your build.
 
@@ -405,7 +430,9 @@ Now that your pipeline is working, it's time to make a change to the `gceme` app
 
   ![](img/console.png)
 
-1. Track the output for a few minutes until the change is deployed to staging and you are prompted to deploy it:
+1. Track the output for a few minutes and watch for the `kubectl rollingupdate...` to begin. When it starts, open the terminal that's polling staging's `/version` URL and observe it start to change.
+
+1. When the change is deployed to staging and you are prompted to deploy it:
 
   ![](img/approve.png)
 
