@@ -1,7 +1,4 @@
-# Lab: Build a Continuous Delivery Pipeline with Jenkins and Kubernetes
-
-## Prerequisites
-1. A GitHub account
+# Lab: Build a Continuous Delivery Pipeline with Jenkins and Kubernetes ## Prerequisites 1. A GitHub account
 1. A Google Cloud Platform Account
 
 ## Prework - The easy way
@@ -51,6 +48,8 @@ The easy prework configures a lab GCE instance with all tools installed and read
 
 1. SSH to the instance from the console. The tools and source you need for the lab will be configured and you will be placed in the `~/gtc` dir
 
+1. Go into the jenkins-kube-cd folder: `cd ~/gtc/jenkins-kube-cd`
+
 1. Run `gcloud compute instances list` to confirm things are working
 
 ## Prework - The not easy, but not really that hard way
@@ -95,7 +94,7 @@ An empty response is what you expect here.
 ### Create a Jenkins Replication Controller and Service
 Here you'll create a Replication Controller running a Jenkins image, and then a service that will route requests to the controller. 
 
-> **Note**: All of the files that define the Kubernetes resources you will be creating for Jenkins are in the `kubernetes/jenkins` folder in this repo. You are encouraged to check them out before running the create commands.
+> **Note**: All of the files that define the Kubernetes resources you will be creating for Jenkins are in the `kubernetes/jenkins` folder in the `jenkins-kube-cd` folder. You are encouraged to take a look at them before running the create commands.
 
 The Jenkins Replication Controller is defined in `kubernetes/jenkins/jenkins.yaml`. Create the controller and confirm a pod was scheduled:
 
@@ -234,22 +233,22 @@ Both the frontend and backend modes of the application support two additional UR
 1. Kill the processes: `killall gceme`
 
 ### Fork and clone the app 
-Here you'll create your own copy of the `gceme` source code in GitHub and download it to your workstation. Note that the source code in this repository is just for the `gceme` binary, and a `Dockerfile` that describes how to package the binary in a container. 
+Here you'll create your own copy of the `gceme` source code in GitHub and download it to your workstation. The source code in this repository is for the `gceme` binary, and a `Dockerfile` that describes how to package the binary in a container. 
+
+> **Note**: If you're using the pre-configured lab instance, perform the following steps in `~/gtc`
 
 1. Open the `gceme` repo in your browser: [https://github.com/evandbrown/gceme](https://github.com/evandbrown/gceme)
 
 1. Click the `Fork` button to make a copy of the repository in your GitHub account
 
-1. Clone the repository to your laptop (e.g., `git clone https://github.com/YOUR_USERNAME/gceme.git`)
-
-  > **Note**: If you're familiar with Go and have your Go dev environment configured, you can clone the repo to `$GOPATH/src/github.com/yourusername/gceme` and build/run it locally. Totally optional.
+1. Clone the repository to your lab instance or laptop (e.g., `git clone https://github.com/YOUR_USERNAME/gceme.git`)
 
 ## Deploy the sample app to Kubernetes
 In this section you will deploy the `gceme` frontend and backend to Kubernetes. Although you just downloaded the `gceme` source, the files for this section are in the `jenkins-kube-cd` project. These files consist of the Kubernetes manifests that describe the environment that the `gceme` binary/Docker image will be deployed to. They use a default `gceme` Docker image that you will be updating with your own in a later section.
 
 You'll have two environments - staging and production - and use Kubernetes namespaces to isolate them. 
 
-> **Important**: If you used the `shortcut.sh` script earlier, it does not apply here. You will need to execute each of the commands below to proceed.
+> **Important**: If you used the `shortcut.sh` script earlier, you still need to follow these steps.
 
 > **Note**: The manifest files for this section of the tutorial are in `kubernetes/gceme` in the `jenkins-kube-cd` repo. You are encouraged to open and read each one before creating it per the instructions.
 
@@ -340,7 +339,9 @@ The `Jenkinsfile` is written using the Jenkins Workflow DSL (Groov-based). It al
 
 `git add Jenkinsfile`, then `git commit`, and finally `git push origin master` to push your changes to GitHub.
 
-Navigate to your **gceme** project in Jenkins, then click the build button in the **master** branch row (the icon is a clock with a green triangle). After a few moments the build should complete successfully. You may need the refresh the page to see the result:
+Navigate to your **gceme** project in Jenkins, click **Branch Indexing** in the left column, then choose **Index Now**. This will cause Jenkins to detect the Jenkinsfile in your master branch and recognize that branch as buildable.
+
+When indexing completes, go back to the **gceme** project in Jenkins and click the build button in the **master** branch row (the icon is a clock with a green triangle). After a few moments the build should complete successfully. You may need the refresh the page to see the result:
 
 ![](img/first-build.png)
 
@@ -440,12 +441,17 @@ Now that your pipeline is working, it's time to make a change to the `gceme` app
 
 1. Look at the `Jenkinsfile` in the project and analyze how the approval workflow is written.
 
+## Extra credit: deploy a breaking change, then roll back
+Make a breaking change to the `gceme` source, push it, and deploy it through the pipeline to production. Then pretend latency spiked after the deployment and you want to roll back. Do it! Faster!
+
+Things to consider:
+
+* What is the Docker image you want to deploy for roll back?
+* How can you interact directly with the Kubernetes to trigger the deployment?
+* Is SRE really what you want to do with your life?
+
 ## Clean up
 Clean up is really easy, but also super important: if you don't follow these instructions, you will continue to be billed for the Google Container Engine cluster you created.
 
-Cleaning up is one simple command:
-
-```shell
-$ gcloud container clusters delete gtc
-```
+To clean up, navigate to the [Google Developers Console Project List](https://console.developers.google.com/project), choose the project you created for this lab, and delete it. That's it.
 
