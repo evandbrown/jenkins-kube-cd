@@ -1,4 +1,7 @@
-# Lab: Build a Continuous Delivery Pipeline with Jenkins and Kubernetes ## Prerequisites 1. A GitHub account
+# Lab: Build a Continuous Delivery Pipeline with Jenkins and Kubernetes 
+
+## Prerequisites
+1. A GitHub account
 1. A Google Cloud Platform Account
 
 ## Prework - The easy way
