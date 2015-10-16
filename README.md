@@ -11,7 +11,7 @@ The easy prework configures a lab GCE instance with all tools installed and read
 
 1. Enable the **Google Container Engine** and **Google Compute Engine** APIs
 
-1. Start a new GCE instane in the console with the following options:
+1. Start a new GCE instance in the console with the following options:
 
   * **Zone**: us-central1-f
   
