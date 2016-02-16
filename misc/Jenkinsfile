@@ -4,7 +4,7 @@ node('docker') {
   // Kubernetes cluster info
   def cluster = 'gtc'
   def zone = 'us-central1-f'
-  def project = 'REPLACE_WITH_YOUR_PROJECT_NAME'
+  def project = 'REPLACE_WITH_YOUR_PROJECT_ID'
 
   // Run tests
   stage 'Go tests'

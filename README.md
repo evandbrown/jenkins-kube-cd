@@ -315,7 +315,7 @@ You'll now use Jenkins to define and run a pipeline that will test, build, and d
 > **Note**: This section uses source files in the `gceme` project.
 
 ### Phase 1: Create a Multibranch Workflow project
-This lab uses [Jenkins Workflow](TODO) to define builds as groovy scripts. Navigate to your Jenkins UI and follow these steps to configure a Multibranch Workflow project (hot tip: you can find the IP address of your Jenkins install with `kubectl get service/nginx-ssl-proxy`):
+This lab uses [Jenkins Workflow](https://github.com/jenkinsci/workflow-plugin) to define builds as groovy scripts. Navigate to your Jenkins UI and follow these steps to configure a Multibranch Workflow project (hot tip: you can find the IP address of your Jenkins install with `kubectl get service/nginx-ssl-proxy`):
 
 1. Click the **New Item** link in the left nav
 
@@ -349,7 +349,7 @@ When indexing completes, go back to the **gceme** project in Jenkins and click t
 ![](img/first-build.png)
 
 ### Phase 3: Modify Jenkinsfile to bulid and test the app
-Modify your `Jenkinsfile` script so it contains the following complete script (or copy the file from `misc/Jenkinsfile` in the `jenkins-cube-cd` repo). Be sure to replace _REPLACE_WITH_YOUR_PROJECT_NAME_ on line 7 with your project name:
+Modify your `Jenkinsfile` script so it contains the following complete script (or copy the file from `misc/Jenkinsfile` in the `jenkins-cube-cd` repo). Be sure to replace _REPLACE_WITH_YOUR_PROJECT_ID on line 7 with your project name:
 
 ```groovy
 node('docker') {
@@ -358,7 +358,7 @@ node('docker') {
   // Kubernetes cluster info
   def cluster = 'gtc'
   def zone = 'us-central1-f'
-  def project = 'REPLACE_WITH_YOUR_PROJECT_NAME'
+  def project = 'REPLACE_WITH_YOUR_PROJECT_ID'
 
   // Run tests
   stage 'Go tests'
@@ -422,7 +422,7 @@ Now that your pipeline is working, it's time to make a change to the `gceme` app
 
    ```go
    //snip
-   const version string = "4.0.0"
+   const version string = "2.0.0"
    //snip
    ```
 
