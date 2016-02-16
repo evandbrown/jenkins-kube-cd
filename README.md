@@ -137,7 +137,7 @@ jenkins-leader-to8xg    1/1       Running   0          4h
 Resize the build agent replication controller to contain 5 pods:
 
 ```shell
-$ kubectl scale rc/jenkins-builder --replicas=5
+$ kubectl scale replicationcontroller jenkins-builder --replicas=5
 ```
 
 Use `kubectl` to verify that 5 pods are running.
